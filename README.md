@@ -1,24 +1,54 @@
-# sampleNod
-Test sample for NodeJS with some basic commands to demonstrate the working of folder level caching of shippable.
+# docker-build-nodejs
+A dockerized app ready for use with Shippable's Docker Build Support
 
-This repository has 3 files and the functions of each file are as follows.
-1. README.md - Contains an some basic conventions and guidelines to show the working of folder level caching.
-2. Package.json - Installs all the libraries mentioned in dependencies list when we run npm install command from the root of this folder. The npm install command creates a new folder called node_modules which contains all the libraries mentioned in the dependency list.
-3. Shippable.yml - Gives a list of command that runs during the CI step.
+How to build this sample
+------------------------
 
-http://docs.shippable.com/ci_configure/ gives you a detailed introduction on how to configure your CI on shippable. So ignoring all the other sections in yml let's go straight to the caching part which is the heart of the discussion here.
+There are 2 ways to set up Docker build with Shippable - pre CI or post CI. 
+Pre CI workflow is:  
+* Build the image using Dockerfile at the root of your repo
+* Pull code from GitHub/Bitbucket and test code in the container
+* Push container to docker hub
 
-1. cache: true tag will tell shippable that caching has to be enabled for this particular build and we will always look at this tag in the yml to see if we need to load anything from cache or not.
+Post CI workflow is:
+* Pull image specified from Docker Hub (default is minv2)
+* Pull code from GitHub/Bitbucket and test in container
+* If CI passs, build container from Dockerfile at the root of the repo
+* Push container to docker hub
 
-2. cache_dir_list:
-  - $SHIPPABLE_BUILD_DIR/node_modules
-  The cache_dir_list is an array of ABSOLUTE_PATH of the folders that needs to be cached. In the case of nodejs most of the time goes in installing all the node_modules so it makes sense to cache this particular folder. So here we give the absolute path of the node_modules directly. In a similar way if you are interested in caching some other folder, you can give the list of absolute paths to those folders.
+To use the pre-CI workflow,
 
-Internal Implementation of cache.
-1. All the users who have enabled cache have an s3 bucket created with their subscriptionId and all the projects that you cache will go into that bucket.
-2. if we first see a cache: true option in your yml, we first try to load the cache file from the bucket, if the bucket exists we extract the files to their respective location and then contiue with the git sync and subsequent CI sections. After all the CI steps are over we look at the directories that needs to cached and create zip file and push it back to the bucket.
-3. If we see a cache: false option in your yml we will override all the previous cache that was created and do not execute any of the cache related operations like push/pull of cache, restoring cache, caching of any form and [reset_minion].
-4. The reset of cache can be done using [reset_minion] or by manually going to ui and click on reset cache button in the project settings. The next build that gets triggered after the reset will not use any old cache.
+1. Fork this repository
+2. Connect your Shippable account to your Docker Hub account
+3. Enable the repository on Shippable
+4. On the repo page, go to 'Settings'
+5. Choose the following -
+    * Build image : Custom Image
+    * Custom image action : Build
+    * Custom image name : (docker hub username)/(image name)
+    * Source code path : (source code path for image you want to build)
+    * Push to Docker Hub : Check
+6. Make sure the Dockerfile for the image you want to build is at the root of your repo
+7. Trigger a manual or webhook build
+8. After the build is complete, make sure your Docker Hub account has the image you just pushed. The image should be tagged with <image name>.<build number>
 
-Please note that any errors during any of the caching steps are not treated as fatal errors.
+To use the post-CI workflow,
+
+1. Fork this repository
+2. Connect your Shippable account to your Docker Hub account
+3. Enable the repository on Shippable
+4. On the repo page, go to 'Settings'
+5. Choose the following -
+    * Build image : Custom Image
+    * Custom image action : Build
+    * Custom image name : (docker hub username)/(image name)
+    * Source code path : (source code path for image you want to build)
+    * Docker build when finished : Check
+    * Image to pull: Specify image you want to run tests on, default is shippable/minv2
+    * Push to Docker Hub : Check
+6. Make sure the Dockerfile for the image you want to build is at the root of your repo
+7. Trigger a manual or webhook build
+8. After the build is complete, make sure your Docker Hub account has the right image. The image should be tagged with <image name>.<build number> 
+
+
 
